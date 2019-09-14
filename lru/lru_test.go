@@ -6,7 +6,7 @@ import (
 )
 
 func TestLRU2(t *testing.T) {
-	lru := NewLRU(2)
+	lru := NewLRUStdlib(2)
 	lru.Set("1", 1)
 	lru.Set("3", 3)
 	lru.Set("5", 5)
@@ -19,7 +19,7 @@ func TestLRU2(t *testing.T) {
 }
 
 func TestLRU1(t *testing.T) {
-	lru := NewLRU(1)
+	lru := NewLRUStdlib(1)
 	lru.Set("1", 1)
 	lru.Set("3", 3)
 	lru.Set("5", 5)
@@ -34,7 +34,7 @@ func TestLRU1(t *testing.T) {
 }
 
 func TestLRUMuchSetGet(t *testing.T) {
-	lru := NewLRU(1000)
+	lru := NewLRUStdlib(1000)
 	go lru.Set("1", 1)
 	go lru.Set("1", 1)
 	go lru.Set("1", 1)
@@ -51,19 +51,24 @@ func TestLRUMuchSetGet(t *testing.T) {
 	expectAbsent(t, lru, "2")
 }
 
-func expectAbsent(t *testing.T, lru *lru, key string) {
+type ILRU interface {
+	Set(string, int)
+	Get(string) (int, bool)
+}
+
+func expectAbsent(t *testing.T, lru ILRU, key string) {
 	if _, ok := lru.Get(key); ok {
 		t.Errorf("Expected key %v to be absend", key)
 	}
 }
 
-func expectEvicted(t *testing.T, lru *lru, key string) {
+func expectEvicted(t *testing.T, lru ILRU, key string) {
 	if _, ok := lru.Get(key); ok {
 		t.Errorf("Expected key %v to be evicted", key)
 	}
 }
 
-func expectEqual(t *testing.T, lru *lru, key string, expect int) {
+func expectEqual(t *testing.T, lru ILRU, key string, expect int) {
 	if v, ok := lru.Get(key); !ok {
 		t.Errorf("Expected to find element by key %v", key)
 	} else if v != expect {
@@ -72,7 +77,7 @@ func expectEqual(t *testing.T, lru *lru, key string, expect int) {
 }
 
 func BenchmarkLru(b *testing.B) {
-	lru := NewLRU(2)
+	lru := NewLRUStdlib(2)
 	for i := 0; i < b.N; i++ {
 		s := strconv.Itoa(i)
 		lru.Set(s, i)

@@ -36,9 +36,7 @@ func NewLRU(maxSize int) *lru {
 
 func (this *lru) Get(key string) (int, bool) {
 	this.lock.RLock()
-	defer func() {
-		this.lock.RUnlock()
-	}()
+	defer this.lock.RUnlock()
 
 	n, ok := this.pointers[key]
 	if !ok {
