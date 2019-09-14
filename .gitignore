@@ -1,0 +1,8 @@
+.idea
+.vsc
+
+vendor
+node_modules
+
+*.bin
+__generated__
