@@ -20,7 +20,7 @@ func main() {
 
 	tTemp, err := strconv.ParseInt(readLine(reader), 10, 64)
 	checkError(err)
-	t := int32(tTemp)j
+	t := int32(tTemp)
 
 	for tItr := 0; tItr < int(t); tItr++ {
 		nTemp, err := strconv.ParseInt(readLine(reader), 10, 64)

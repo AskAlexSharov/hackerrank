@@ -20,7 +20,6 @@ func Precalculate(arr []int32) {
 		if i+2 < len(arr) {
 			sumsOfTail[i] += sumsOfTail[i+2]
 		}
-
 	}
 }
 
