@@ -1,6 +1,7 @@
 package max_array_sum
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -25,10 +26,7 @@ func TestGetNonAdjacentSubsets(t *testing.T) {
 	//}
 
 	result := MaxSubsetSum(in)
-	if result != 8 {
-		t.Errorf("Expected: %+v, got: %+v\n", 8, result)
-	}
-
+	assert.Equal(t, 8, result)
 }
 
 func BenchmarkMaxSubsetSum(b *testing.B) {
