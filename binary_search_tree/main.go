@@ -18,36 +18,23 @@ type Node struct {
 
 func GtNthBiggest(root *Node, n int) (int, error) {
 	var result *Node
-	walkDepthRight(root, n, result)
+
+	root.Postorder(func(node *Node) bool {
+		fmt.Printf("%d\n", node.Value) // if there is no left child, visit current node
+		n--
+		if n == 0 {
+			result = node
+			return true
+		}
+
+		return true
+	})
+
 	if result == nil {
 		return 0, errors.New("not found")
 	}
 
 	return result.Value, nil
-}
-
-func walkDepthRight(n *Node, searchingFor int, result *Node) {
-
-	node := n
-	for node != nil {
-		fmt.Printf("Node: %d \n", n.Value)
-
-		if node.AmountOfChildren == searchingFor {
-			result = node
-			break
-		}
-
-		if node.Right != nil && node.Right.AmountOfChildren >= searchingFor {
-			node = node.Right
-			continue
-		}
-
-		if node.Left == nil {
-			break
-		}
-
-		node = node.Left
-	}
 }
 
 func (tree *Node) Insert(num int) {
@@ -74,10 +61,31 @@ func (tree *Node) Insert(num int) {
 
 		n = n.Right
 	}
-
 }
 
-type Visitor = func(node *Node)
+type Visitor = func(node *Node) (goOn bool)
+
+func (tree *Node) LeftRightMostChild() *Node {
+	child := tree.Left
+
+	// when pre.right == null, it means we go to the right most leaf
+	// when pre.right == cur, it means the right most leaf has been visited in the last round
+	for child.Right != nil && child.Right != tree {
+		child = child.Right
+	}
+	return child
+}
+
+func (tree *Node) RightLeftMostChild() *Node {
+	child := tree.Right
+	// when pre.right == null, it means we go to the right most leaf
+	// when pre.right == cur, it means the right most leaf has been visited in the last round
+	for child.Left != nil && child.Left != tree {
+		child = child.Left
+	}
+
+	return child
+}
 
 // Inorder Traverse without recursion and stack
 // Morris algo
@@ -85,33 +93,66 @@ type Visitor = func(node *Node)
 func (tree *Node) Inorder(visitor Visitor) {
 	cur := tree
 	for cur != nil {
-		if cur.Left == nil {
-			visitor(cur)
+		if cur.Left == nil { // visit leaf node
+			if goOn := visitor(cur); !goOn {
+				break
+			}
 			cur = cur.Right // then we go the right branch
-		} else {
-			// find the right most leaf of root.left node.
-			pre := cur.Left
-
-			// when pre.right == null, it means we go to the right most leaf
-			// when pre.right == cur, it means the right most leaf has been visited in the last round
-			for pre.Right != nil && pre.Right != cur {
-				pre = pre.Right
-			}
-			// this means the pre.right has been set, it's time to go to current node
-			if pre.Right == cur {
-				pre.Right = nil
-
-				// means the current node is pointed by left right most child
-				// the left branch has been visited, it's time to print the current node
-				visitor(cur)
-				cur = cur.Right
-			} else {
-				// the fist time to visit the pre node, make its right child point to current node
-				pre.Right = cur
-				//fmt.Printf("----set pre for cur=%v\n", cur.Value)
-				cur = cur.Left
-			}
+			continue
 		}
+
+		// find the right most leaf of root.left node.
+		pre := cur.LeftRightMostChild()
+
+		if pre.Right != cur { // the fist time to visit the pre node, make its right child point to current node
+			pre.Right = cur // set soft link
+			cur = cur.Left
+			continue
+		}
+
+		// this means the pre.right has been set, it's time to go to current node
+		pre.Right = nil
+
+		// means the current node is pointed by left right most child
+		// the left branch has been visited, it's time to print the current node
+		if goOn := visitor(cur); !goOn {
+			break
+		}
+
+		cur = cur.Right // go to parent
+	}
+}
+
+func (tree *Node) Postorder(visitor Visitor) {
+	cur := tree
+	for cur != nil {
+
+		if cur.Right == nil { // visit leaf node
+			if goOn := visitor(cur); !goOn {
+				break
+			}
+			cur = cur.Left // then we go the right branch
+			continue
+		}
+
+		pre := cur.RightLeftMostChild()
+
+		if pre.Left != cur { // the fist time to visit the pre node, make its right child point to current node
+			pre.Left = cur // set soft link
+			cur = cur.Right
+			continue
+		}
+
+		// this means the pre.right has been set, it's time to go to current node
+		pre.Left = nil
+
+		// means the current node is pointed by left right most child
+		// the left branch has been visited, it's time to print the current node
+		if goOn := visitor(cur); !goOn {
+			break
+		}
+
+		cur = cur.Left // go to parent
 	}
 }
 
@@ -134,8 +175,9 @@ func BuildBinarySearchTree(n int) *Node {
 
 func main() {
 	tree := BuildBinarySearchTree(10)
-	tree.Inorder(func(node *Node) {
+	tree.Inorder(func(node *Node) bool {
 		fmt.Printf("%d\n", node.Value) // if there is no left child, visit current node
+		return true
 	})
 
 	// TODO: get N'tt biggest
@@ -144,6 +186,6 @@ func main() {
 	// TODO: walk Preorder
 	// TODO: tests
 
-	//r := GtNthBiggest(tree, 10)
-	//fmt.Printf("Result: %v\n", r)
+	r, err := GtNthBiggest(tree, 3)
+	fmt.Printf("Result: %v %v\n", r, err)
 }
