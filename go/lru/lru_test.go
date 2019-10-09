@@ -90,3 +90,13 @@ func BenchmarkLru(b *testing.B) {
 		lru.Get(s)
 	}
 }
+
+func a(b interface{}) {
+
+}
+
+func Benchmark2(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		a(b)
+	}
+}

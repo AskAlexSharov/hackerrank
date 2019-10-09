@@ -10,10 +10,9 @@ import (
 // get N-th biggest element
 
 type Node struct {
-	Left             *Node
-	Right            *Node
-	Value            int
-	AmountOfChildren int
+	Left  *Node
+	Right *Node
+	Value int
 }
 
 func GtNthBiggest(root *Node, n int) (int, error) {
@@ -44,7 +43,6 @@ func (tree *Node) Insert(num int) {
 			break
 		}
 
-		n.AmountOfChildren++
 		if n.Value > num {
 			if n.Left == nil {
 				n.Left = &Node{Value: num}
@@ -179,12 +177,6 @@ func main() {
 		fmt.Printf("%d\n", node.Value) // if there is no left child, visit current node
 		return true
 	})
-
-	// TODO: get N'tt biggest
-	// TODO: get N'th smallest
-	// TODO: walk Postorder
-	// TODO: walk Preorder
-	// TODO: tests
 
 	r, err := GtNthBiggest(tree, 3)
 	fmt.Printf("Result: %v %v\n", r, err)
