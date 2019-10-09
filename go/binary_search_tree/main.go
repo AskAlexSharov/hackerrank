@@ -7,8 +7,6 @@ import (
 	"math/rand"
 )
 
-// get N-th biggest element
-
 type Node struct {
 	Left  *Node
 	Right *Node
