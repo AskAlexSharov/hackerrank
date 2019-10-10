@@ -46,7 +46,7 @@ struct Arena<T: Holdable> {
 }
 
 impl<T: Holdable> Arena<T> {
-    fn add(&mut self, val: T) -> usize {
+    fn add(&mut self, val: T) -> NodeId {
         let k = self.nodes.len();
         self.nodes.insert(k, Node::new(val));
         k
@@ -67,7 +67,7 @@ struct MorrisTree<T: Holdable> {
     arena: Arena<T>,
 }
 
-impl<T: Holdable> Tree<T> for &mut MorrisTree<T> {
+impl<T: Holdable> Tree<T> for MorrisTree<T> {
     fn insert(&mut self, val: T) {
         let arena = self.arena.borrow_mut();
 
@@ -79,14 +79,21 @@ impl<T: Holdable> Tree<T> for &mut MorrisTree<T> {
         let mut node_id = self.root.unwrap();
         loop {
             let node = arena.get(node_id);
-            match (val < node.data, node.left, node.right) {
-                (true, Some(n), _) => node_id = n,
-                (false, _, Some(n)) => node_id = n,
-                _ => {
-                    arena.get_mut(node_id).right = Some(arena.add(val));
+            if val < node.data {
+                if node.left.is_none() {
+                    arena.get_mut(node_id).left = Some(arena.add(val));
                     break;
                 }
+
+                node_id = node.left.unwrap();
             }
+
+            if node.right.is_none() {
+                arena.get_mut(node_id).right = Some(arena.add(val));
+                break;
+            }
+
+            node_id = node.right.unwrap();
         }
     }
 

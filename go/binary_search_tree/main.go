@@ -41,7 +41,7 @@ func (tree *Node) Insert(num int) {
 			break
 		}
 
-		if n.Value > num {
+		if num < n.Value {
 			if n.Left == nil {
 				n.Left = &Node{Value: num}
 				break
