@@ -1,0 +1,15 @@
+POST /transaction/
+{
+  request_guid:..,
+  transaction_type:...,
+  amount:100,
+  account_1:123,
+  account_2:234,
+}
+
+
+GET /transaction/?request_guid=...
+GET /transaction/?transaction_id=...
+
+
+
