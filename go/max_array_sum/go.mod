@@ -1,4 +1,4 @@
-module github.com/askalexsharov/hackerrank-go/max_array_sum
+module github.com/askalexsharov/hackerrank/go/max_array_sum
 
 go 1.13
 

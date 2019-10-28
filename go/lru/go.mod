@@ -1,4 +1,4 @@
-module github.com/askalexsharov/hackerrank-go/lru
+module github.com/askalexsharov/hackerrank/go/lru
 
 go 1.13
 

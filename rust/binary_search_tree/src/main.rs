@@ -3,165 +3,100 @@
 use serde::export::fmt::Debug;
 use std::borrow::{Borrow, BorrowMut};
 
-type Visitor<T> = Box<Fn(&Node<T>) -> bool>;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread;
 
-trait Holdable: Ord + Debug + Default {}
+trait Holdable: Ord + Debug + Default + Sync + Send + Copy {}
 
-impl<T: Ord + Debug + Default> Holdable for T {}
+impl<T: Ord + Debug + Default + Sync + Send + Copy> Holdable for T {}
 
-trait Tree<T: Holdable>: std::fmt::Debug {
-    fn insert(&mut self, val: T);
-    fn inorder(&mut self, visitor: Visitor<T>);
-    fn preorder(&mut self, visitor: Visitor<T>);
-    fn postorder(&mut self, visitor: Visitor<T>);
+trait Tree: std::fmt::Debug {
+    fn insert(&mut self, val: i32);
+    fn inorder(&self) -> Receiver<Node>;
+    fn preorder(&self) -> Receiver<Node>;
+    fn postorder(&self) -> Receiver<Node>;
 }
 
-type NodeId = usize;
-
-#[derive(Debug, Default)]
-struct Node<T: Holdable> {
-    left: Option<NodeId>,
-    right: Option<NodeId>,
-    data: T,
-}
-
-impl<T: Holdable> From<T> for Node<T> {
-    fn from(val: T) -> Self {
-        Node::new(val)
+impl Clone for Option<Box<Node>> {
+    fn clone(&self) -> Self {
+        return self.clone();
     }
 }
+impl Copy for Option<Box<Node>> {}
 
-impl<T: Holdable> Node<T> {
-    pub fn new(val: T) -> Node<T> {
+#[derive(Debug, Default, Copy, Clone)]
+struct Node {
+    left: Option<Box<Node>>,
+    right: Option<Box<Node>>,
+    data: i32,
+}
+
+impl Node {
+    pub fn new(val: i32) -> Node {
         Node {
             data: val,
             ..Default::default()
         }
     }
-}
 
-#[derive(Debug, Default)]
-struct Arena<T: Holdable> {
-    pub(crate) nodes: Vec<Node<T>>,
-}
-
-impl<T: Holdable> Arena<T> {
-    fn add(&mut self, val: T) -> NodeId {
-        let k = self.nodes.len();
-        self.nodes.insert(k, Node::new(val));
-        k
-    }
-
-    pub fn get(&self, id: NodeId) -> &Node<T> {
-        self.nodes.get(id).unwrap()
-    }
-
-    pub fn get_mut(&mut self, id: NodeId) -> &mut Node<T> {
-        self.nodes.get_mut(id).unwrap()
+    pub fn inorder(&self, sender: Sender<Node>) {
+        sender.send(*self).unwrap()
     }
 }
 
 #[derive(Debug, Default)]
-struct MorrisTree<T: Holdable> {
-    root: Option<NodeId>,
-    arena: Arena<T>,
+struct RecursiveTree {
+    root: Option<Box<Node>>,
 }
 
-fn left_right_most_child<T: Holdable>(node_id: NodeId, arena: &mut Arena<T>) -> Option<NodeId> {
-    let mut child_id = arena.get(node_id).left?;
-    let child = arena.get(child_id);
-
-    while child.right.is_some() && child.right.unwrap() != node_id {
-        child_id = child.right.unwrap();
-    }
-
-    Some(child_id)
-}
-
-impl<T: Holdable> Tree<T> for MorrisTree<T> {
-    fn insert(&mut self, val: T) {
-        let arena = self.arena.borrow_mut();
-
+impl Tree for RecursiveTree {
+    fn insert(&mut self, val: i32) {
         if self.root.is_none() {
-            self.root = Some(arena.add(val));
+            self.root = Some(Box::new(Node::new(val)));
             return;
         }
 
-        let mut node_id = self.root.unwrap();
+        let mut node = *self.root.unwrap();
         loop {
-            let node = arena.get(node_id);
-
             if val == node.data {
                 break;
             }
 
             if val < node.data {
                 if node.left.is_none() {
-                    arena.get_mut(node_id).left = Some(arena.add(val));
+                    let mut n = node;
+                    n.left = Some(Box::new(Node::new(val)));
                     break;
                 }
 
-                node_id = node.left.unwrap();
+                node = *node.left.unwrap();
             }
 
             if node.right.is_none() {
-                arena.get_mut(node_id).right = Some(arena.add(val));
+                node.right = Some(Box::new(Node::new(val)));
                 break;
             }
 
-            node_id = node.right.unwrap();
+            node = *node.right.unwrap();
         }
     }
 
-    fn inorder(&mut self, visitor: Visitor<T>) {
-        let mut node_id = self.root;
-        let arena = self.arena.borrow_mut();
-
-        while node_id.is_some() {
-            let node = arena.get_mut(node_id.unwrap());
-            if node.left.is_none() {
-                if !visitor(node) {
-                    break;
-                }
-
-                node_id = node.right;
-                continue;
-            }
-
-            // left_right_most_child
-            let mut pre_id = node.left.unwrap();
-            let pre = arena.get_mut(pre_id);
-            while pre.right.is_some() && pre.right.unwrap() != pre_id {
-                pre_id = pre.right.unwrap();
-            }
-
-            let pre_node = arena.get_mut(pre_id);
-
-            if pre_node.right.is_none() || pre_node.right.unwrap() != node_id.unwrap() {
-                pre_node.right = Some(node_id.unwrap());
-                node_id = node.left;
-                continue;
-            }
-
-            pre_node.right.take();
-
-            if !visitor(node) {
-                break;
-            }
-
-            node_id = node.right;
-        }
+    fn inorder(&self) -> Receiver<Node> {
+        let (tx, rx) = channel();
+        //        thread::spawn(move || {
+        //            self.root.unwrap().inorder(tx);
+        //        });
+        return rx;
+    }
+    fn preorder(&self) -> Receiver<Node> {
         panic!("not implemented yet!")
     }
-    fn preorder(&mut self, visitor: Visitor<T>) {
-        panic!("not implemented yet!")
-    }
-    fn postorder(&mut self, visitor: Visitor<T>) {
+    fn postorder(&self) -> Receiver<Node> {
         panic!("not implemented yet!")
     }
 }
 
-fn build_binary_search_tree<T: Holdable>(tree: &mut MorrisTree<T>, seed: std::vec::IntoIter<T>) {
+fn build_binary_search_tree(tree: &mut RecursiveTree, seed: std::vec::IntoIter<i32>) {
     seed.for_each(|x| tree.insert(x));
 }
 
@@ -169,7 +104,7 @@ fn prepare_data_for_tree(n: i32) -> std::vec::IntoIter<i32> {
     use rand_distr::{Distribution, Normal};
     let normal = Normal::new(2.0, 3.0).unwrap();
     let mut data = vec![];
-    for i in 0..n {
+    for _i in 0..n {
         let gen = normal.sample(&mut rand::thread_rng());
         data.push(gen as i32);
     }
@@ -177,17 +112,13 @@ fn prepare_data_for_tree(n: i32) -> std::vec::IntoIter<i32> {
 }
 
 fn main() {
-    let mut tree = MorrisTree::<i32> {
-        arena: Arena { nodes: vec![] },
+    let mut tree = RecursiveTree {
         ..Default::default()
     };
     let data = prepare_data_for_tree(10);
 
     build_binary_search_tree(&mut tree, data);
-    tree.inorder(Box::new(|node| {
-        dbg!(node);
-        true
-    }));
+    let rec = tree.inorder();
 
-    //    dbg!(tree);
+    dbg!(rec);
 }

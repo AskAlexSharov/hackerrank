@@ -1,4 +1,4 @@
-module github.com/askalexsharov/hackerrank-go/json_bench
+module github.com/askalexsharov/hackerrank/go/json_bench
 
 go 1.13
 

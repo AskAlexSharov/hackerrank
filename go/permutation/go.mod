@@ -1,4 +1,4 @@
-module github.com/askalexsharov/hackerrank-go/permutation
+module github.com/askalexsharov/hackerrank/go/permutation
 
 go 1.13
 

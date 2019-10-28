@@ -1,13 +1,9 @@
 .idea
-.idea/*
 .vsc
-.vsc/*
-
-
-vendor
-node_modules
 
 *.bin
 __generated__
 
-./hackerrank-go
+vendor
+node_modules
+target

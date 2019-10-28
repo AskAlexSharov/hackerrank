@@ -1,62 +1,32 @@
-package main
+package tree
+
+// This file describing Morris non-recursion traversal algo of binary search tree
+// Morris Algo: http://www.learn4master.com/algorithms/morris-traversal-inorder-tree-traversal-without-recursion-and-without-stack
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"math"
-	"math/rand"
 )
-
-type Node struct {
-	Left  *Node
-	Right *Node
-	Value int
-}
 
 func GtNthBiggest(root *Node, n int) (int, error) {
 	var result *Node
 
-	root.Postorder(func(node *Node) bool {
+	ctx, cancel := context.WithCancel(context.Background())
+	for node := range root.PostorderMorris(ctx) {
 		fmt.Printf("%d\n", node.Value) // if there is no left child, visit current node
 		n--
-		if n == 0 {
-			result = node
-			return true
+		if n == 0 { // found
+			result = &node
+			cancel()
 		}
-
-		return true
-	})
+	}
 
 	if result == nil {
 		return 0, errors.New("not found")
 	}
 
 	return result.Value, nil
-}
-
-func (tree *Node) Insert(num int) {
-	n := tree
-	for n != nil {
-		if n.Value == num {
-			break
-		}
-
-		if num < n.Value {
-			if n.Left == nil {
-				n.Left = &Node{Value: num}
-				break
-			}
-
-			n = n.Left
-		}
-
-		if n.Right == nil {
-			n.Right = &Node{Value: num}
-			break
-		}
-
-		n = n.Right
-	}
 }
 
 type Visitor = func(node *Node) (goOn bool)
@@ -86,13 +56,25 @@ func (tree *Node) RightLeftMostChild() *Node {
 // Inorder Traverse without recursion and stack
 // Morris algo
 //  http://www.learn4master.com/algorithms/morris-traversal-inorder-tree-traversal-without-recursion-and-without-stack
-func (tree *Node) Inorder(visitor Visitor) {
+func (tree *Node) InorderMorris(ctx context.Context) chan Node {
+	out := make(chan Node, 10)
+	go func() {
+		defer close(out)
+		tree.inorderMorris(ctx, out)
+	}()
+	return out
+}
+
+func (tree *Node) inorderMorris(ctx context.Context, out chan Node) {
 	cur := tree
 	for cur != nil {
 		if cur.Left == nil { // visit leaf node
-			if goOn := visitor(cur); !goOn {
-				break
+			select {
+			case out <- *cur:
+			case <-ctx.Done():
+				return
 			}
+
 			cur = cur.Right // then we go the right branch
 			continue
 		}
@@ -111,22 +93,36 @@ func (tree *Node) Inorder(visitor Visitor) {
 
 		// means the current node is pointed by left right most child
 		// the left branch has been visited, it's time to print the current node
-		if goOn := visitor(cur); !goOn {
-			break
+		select {
+		case out <- *cur:
+		case <-ctx.Done():
+			return
 		}
 
 		cur = cur.Right // go to parent
 	}
 }
 
-func (tree *Node) Postorder(visitor Visitor) {
+func (tree *Node) PostorderMorris(ctx context.Context) chan Node {
+	out := make(chan Node, 10)
+	go func() {
+		defer close(out)
+		tree.postorderMorris(ctx, out)
+	}()
+	return out
+}
+
+func (tree *Node) postorderMorris(ctx context.Context, out chan Node) {
 	cur := tree
 	for cur != nil {
 
 		if cur.Right == nil { // visit leaf node
-			if goOn := visitor(cur); !goOn {
-				break
+			select {
+			case out <- *cur:
+			case <-ctx.Done():
+				return
 			}
+
 			cur = cur.Left // then we go the right branch
 			continue
 		}
@@ -144,38 +140,12 @@ func (tree *Node) Postorder(visitor Visitor) {
 
 		// means the current node is pointed by left right most child
 		// the left branch has been visited, it's time to print the current node
-		if goOn := visitor(cur); !goOn {
-			break
+		select {
+		case out <- *cur:
+		case <-ctx.Done():
+			return
 		}
 
 		cur = cur.Left // go to parent
 	}
-}
-
-// BuildBinarySearchTree assadfasdf
-func BuildBinarySearchTree(n int) *Node {
-	tree := &Node{
-		Value: int(math.Ceil(float64(n) / 2)),
-	}
-
-	rand.Seed(1650)
-
-	for i := 1; i < n; i++ {
-		rnd := rand.NormFloat64()
-		r := math.Ceil(math.Abs(rnd) * float64(n))
-		tree.Insert(int(r))
-	}
-
-	return tree
-}
-
-func main() {
-	tree := BuildBinarySearchTree(10)
-	tree.Inorder(func(node *Node) bool {
-		fmt.Printf("%d\n", node.Value) // if there is no left child, visit current node
-		return true
-	})
-
-	r, err := GtNthBiggest(tree, 3)
-	fmt.Printf("Result: %v %v\n", r, err)
 }
