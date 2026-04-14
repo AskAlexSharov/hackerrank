@@ -8,6 +8,6 @@ edition = "2018"
 
 [dependencies]
 serde = "1"
-rand = "0.7"
+rand = "0.9"
 rand_distr = "0.2"
 
